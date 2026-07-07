@@ -79,6 +79,10 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 .auth-card .stack{display:grid;gap:12px}
 .auth-card button{width:100%;margin-top:4px}
 .auth-msg{min-height:20px;color:var(--red);font-size:13px;margin-top:12px;line-height:1.6}
+.password-wrap{position:relative}
+.password-wrap input{padding-left:46px}
+.password-toggle{position:absolute;left:6px;top:50%;transform:translateY(-50%);width:34px!important;height:34px;margin:0!important;padding:0;border-radius:6px;background:transparent;color:var(--muted);border:0;display:flex;align-items:center;justify-content:center;font-size:16px}
+.password-toggle:hover{background:#f2efe7;color:var(--ink)}
 .user-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:7px 12px;font-size:12px;color:#fff;background:rgba(255,255,255,.08)}
 .role-note{display:inline-flex;align-items:center;border-radius:999px;padding:2px 8px;background:rgba(255,255,255,.18)}
 .readonly-note{background:var(--amber-bg);border:1px solid #e9c789;color:#7a4d12;border-radius:8px;padding:10px 12px;margin-bottom:12px;display:none;font-size:13px}
@@ -102,7 +106,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
     <p>ادخل بالبريد وكلمة المرور المعتمدين. الصلاحيات يتم تحديدها من Firebase حسب دور كل مستخدم.</p>
     <form id="loginForm" class="stack" autocomplete="on">
       <div><label>البريد الإلكتروني</label><input type="email" id="loginEmail" autocomplete="username" required></div>
-      <div><label>كلمة المرور</label><input type="password" id="loginPassword" autocomplete="current-password" required></div>
+      <div><label>كلمة المرور</label><div class="password-wrap"><input type="password" id="loginPassword" autocomplete="current-password" required><button type="button" class="password-toggle" id="passwordToggle" onclick="toggleLoginPassword()" aria-label="إظهار كلمة المرور" title="إظهار كلمة المرور">👁</button></div></div>
       <button type="submit" class="btn-p">دخول</button>
     </form>
     <div class="auth-msg" id="authMsg"></div>
@@ -379,6 +383,15 @@ const makeId=()=>globalThis.crypto?.randomUUID?.()||String(Date.now())+'-'+Math.
 const frm=document.getElementById('frm');
 const authMsg=document.getElementById('authMsg');
 
+function toggleLoginPassword(){
+  const input=document.getElementById('loginPassword');
+  const btn=document.getElementById('passwordToggle');
+  const show=input.type==='password';
+  input.type=show?'text':'password';
+  btn.textContent=show?'🙈':'👁';
+  btn.setAttribute('aria-label',show?'إخفاء كلمة المرور':'إظهار كلمة المرور');
+  btn.title=show?'إخفاء كلمة المرور':'إظهار كلمة المرور';
+}
 function showSignedOut(message=''){
   document.getElementById('appShell').style.display='none';
   document.getElementById('authView').style.display='flex';
@@ -653,7 +666,7 @@ async function importJSON(inp){
 }
 async function logout(){await signOut(auth);}
 
-Object.assign(window,{render,setStat,applyCase,openForm,closeForm,openEngineerSettings,closeEngineerSettings,deleteEngineer,toggleReply,toggleAttach,toggleHqOutNo,toggleLate,toggleLate2,toggleAction,calcDue,save,delRecord,exportExcel,exportJSON,importJSON,logout});
+Object.assign(window,{render,setStat,applyCase,openForm,closeForm,openEngineerSettings,closeEngineerSettings,deleteEngineer,toggleLoginPassword,toggleReply,toggleAttach,toggleHqOutNo,toggleLate,toggleLate2,toggleAction,calcDue,save,delRecord,exportExcel,exportJSON,importJSON,logout});
 frm.addEventListener('submit',save);
 document.getElementById('engineerForm').addEventListener('submit',addEngineer);
 document.getElementById('loginForm').addEventListener('submit',async e=>{
