@@ -71,21 +71,49 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 .toast{position:fixed;bottom:22px;right:50%;transform:translateX(50%);background:var(--ink);color:#fff;padding:10px 22px;border-radius:8px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.show{opacity:1}
 @media print{header .hbtns,.filters,.stats,.factions,.fhead .hbtns{display:none}body{background:#fff}}
+#appShell{display:none}
+.auth-shell{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#f7f5f0 0%,#e8f3ef 100%)}
+.auth-card{width:min(420px,100%);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:22px;box-shadow:0 18px 45px rgba(29,58,53,.12)}
+.auth-card h2{font-size:20px;margin-bottom:6px;color:var(--ink)}
+.auth-card p{color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:16px}
+.auth-card .stack{display:grid;gap:12px}
+.auth-card button{width:100%;margin-top:4px}
+.auth-msg{min-height:20px;color:var(--red);font-size:13px;margin-top:12px;line-height:1.6}
+.user-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:7px 12px;font-size:12px;color:#fff;background:rgba(255,255,255,.08)}
+.role-note{display:inline-flex;align-items:center;border-radius:999px;padding:2px 8px;background:rgba(255,255,255,.18)}
+.readonly-note{background:var(--amber-bg);border:1px solid #e9c789;color:#7a4d12;border-radius:8px;padding:10px 12px;margin-bottom:12px;display:none;font-size:13px}
+.hidden{display:none!important}
 </style>
 </head>
 <body>
 
+<div id="authView" class="auth-shell">
+  <section class="auth-card" aria-label="تسجيل الدخول">
+    <h2>تسجيل الدخول</h2>
+    <p>ادخل بالبريد وكلمة المرور المعتمدين. الصلاحيات يتم تحديدها من Firebase حسب دور كل مستخدم.</p>
+    <form id="loginForm" class="stack" autocomplete="on">
+      <div><label>البريد الإلكتروني</label><input type="email" id="loginEmail" autocomplete="username" required></div>
+      <div><label>كلمة المرور</label><input type="password" id="loginPassword" autocomplete="current-password" required></div>
+      <button type="submit" class="btn-p">دخول</button>
+    </form>
+    <div class="auth-msg" id="authMsg"></div>
+  </section>
+</div>
+
+<div id="appShell">
 <header>
   <div>
     <h1>وزارة الموارد المائية والري – قطاع التوسع الأفقي والمشروعات</h1>
     <small>سجل مكاتبات الإدارة العامة للدراسات والمواصفات — نظام موحد للحالات الست</small>
   </div>
   <div class="hbtns">
-    <button class="btn-p" onclick="openForm()">＋ مكاتبة جديدة</button>
-    <button class="btn-s" onclick="exportExcel()">📊 تصدير Excel</button>
-    <button class="btn-s" onclick="exportJSON()">نسخة احتياطية</button>
-    <button class="btn-s" onclick="fileInput.click()">استيراد</button>
-    <button class="btn-s" onclick="window.print()">طباعة</button>
+    <span class="user-badge" id="userBadge"></span>
+    <button class="btn-p" id="newBtn" onclick="openForm()">＋ مكاتبة جديدة</button>
+    <button class="btn-s" id="exportBtn" onclick="exportExcel()">📊 تصدير Excel</button>
+    <button class="btn-s" id="backupBtn" onclick="exportJSON()">نسخة احتياطية</button>
+    <button class="btn-s" id="importBtn" onclick="document.getElementById('fileInput').click()">استيراد</button>
+    <button class="btn-s" id="printBtn" onclick="window.print()">طباعة</button>
+    <button class="btn-s" onclick="logout()">خروج</button>
     <input type="file" id="fileInput" accept=".json" hidden onchange="importJSON(this)">
   </div>
 </header>
@@ -111,6 +139,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <option>بانتظار الرد</option><option>مكتمل</option><option>مغلق</option>
     </select>
     <select id="fEng" onchange="render()"><option value="">كل المهندسين</option></select>
+    <select id="fScope" onchange="render()"><option value="all">كل المكاتبات</option><option value="mine">مكاتباتي</option></select>
     <select id="fPriority" onchange="render()">
       <option value="">كل درجات الأهمية</option>
       <option>فوري</option><option>خلال 48 ساعة</option><option>خلال أسبوع</option><option>خلال أسبوعين</option><option>عادي</option>
@@ -137,9 +166,10 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
     </div>
   </div>
 
+  <div class="readonly-note" id="readonlyNote">هذه المكاتبة متاحة للمشاهدة فقط حسب صلاحيات حسابك.</div>
   <div class="path" id="path"></div>
 
-  <form id="frm" autocomplete="off" onsubmit="save(event)">
+  <form id="frm" autocomplete="off">
   <details open><summary><span class="num">1</span>نوع الحالة وبيانات الخطاب الأصلي</summary>
     <div class="grid">
       <div class="full"><label>نوع الحالة <span class="req">*</span></label>
@@ -260,20 +290,33 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
   </details>
 
   <div class="factions">
-    <button type="submit" class="btn-p" style="background:var(--nile)">حفظ المكاتبة</button>
+    <button type="submit" id="saveBtn" class="btn-p" style="background:var(--nile)">حفظ المكاتبة</button>
     <button type="button" class="btn-g" onclick="closeForm()">إلغاء</button>
   </div>
   </form>
 </div>
 </main>
+</div>
 
 <datalist id="engList"></datalist>
 <div class="toast" id="toast"></div>
 
-<script>
-const KEY='corr_v1';
-let db=JSON.parse(localStorage.getItem(KEY)||'[]');
-let editId=null, statFilter='';
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDGfayARwV7Ry86w6V2ldZfdFgWdNYxrBs",
+  authDomain: "correspondence-system-57a0c.firebaseapp.com",
+  projectId: "correspondence-system-57a0c",
+  storageBucket: "correspondence-system-57a0c.firebasestorage.app",
+  messagingSenderId: "983892417691",
+  appId: "1:983892417691:web:417f0e487b2d7758d1ba3e"
+};
+
+let firebaseApp=null, auth=null, firestoreDb=null, unsubscribeRecords=null;
+let db=[], editId=null, statFilter='', currentUser=null, currentProfile=null;
 
 const CASE_NAMES={
   '1':'تأشيرة المصلحة لرئيس القطاع',
@@ -283,29 +326,96 @@ const CASE_NAMES={
   '5':'تأشيرة جهة أخرى للإدارة المركزية',
   '6':'تأشيرة جهة أخرى لمدير عام الدراسات'
 };
-/* أي أقسام تظهر لكل حالة */
 const CASE_SECTIONS={
-  '1':['hq','sector','central'],   // central تظهر فقط لو المسار عبرها
+  '1':['hq','sector','central'],
   '2':['sector','central'],
   '3':['central'],
   '4':[],
   '5':['extVisa','central'],
   '6':['extVisa']
 };
+const ROLE_LABELS={admin:'مدير النظام',supervisor:'مشرف',employee:'موظف',viewer:'مشاهدة فقط'};
 
-const persist=()=>localStorage.setItem(KEY,JSON.stringify(db));
 const today=()=>new Date().toISOString().slice(0,10);
 const isOverdue=r=>r.dueDate && r.dueDate<today() && !['مكتمل','مغلق'].includes(r.status);
 const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const toast=m=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)};
+const role=()=>currentProfile?.role||'';
+const canReadAll=()=>['admin','supervisor','viewer'].includes(role());
+const canCreate=()=>['admin','supervisor','employee'].includes(role());
+const canDelete=()=>role()==='admin';
+const canImport=()=>role()==='admin';
+const canExport=()=>['admin','supervisor'].includes(role());
+const canEditRecord=r=>role()==='admin'||role()==='supervisor'||(role()==='employee' && r?.ownerUid===currentUser?.uid);
+const configured=()=>Object.values(firebaseConfig).every(v=>v && !String(v).startsWith('PASTE_'));
+const addDays=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+const makeId=()=>globalThis.crypto?.randomUUID?.()||String(Date.now())+'-'+Math.random().toString(36).slice(2);
 
-/* ---------- list ---------- */
+const frm=document.getElementById('frm');
+const authMsg=document.getElementById('authMsg');
+
+function showSignedOut(message=''){
+  document.getElementById('appShell').style.display='none';
+  document.getElementById('authView').style.display='flex';
+  authMsg.textContent=message;
+  currentUser=null; currentProfile=null; db=[];
+  if(unsubscribeRecords){unsubscribeRecords(); unsubscribeRecords=null;}
+}
+function showApp(){
+  document.getElementById('authView').style.display='none';
+  document.getElementById('appShell').style.display='block';
+  applyPermissions();
+  render();
+}
+function applyPermissions(){
+  document.getElementById('userBadge').innerHTML=`${esc(currentProfile?.name||currentUser?.email||'')} <span class="role-note">${ROLE_LABELS[role()]||role()}</span>`;
+  document.getElementById('newBtn').style.display=canCreate()?'':'none';
+  document.getElementById('exportBtn').style.display=canExport()?'':'none';
+  document.getElementById('backupBtn').style.display=canExport()?'':'none';
+  document.getElementById('importBtn').style.display=canImport()?'':'none';
+  const scope=document.getElementById('fScope');
+  if(canReadAll()){scope.style.display='';} else {scope.value='mine'; scope.style.display='none';}
+}
+function getScopedRecords(){
+  const scope=document.getElementById('fScope')?.value||'all';
+  if(!canReadAll() || scope==='mine') return db.filter(r=>r.ownerUid===currentUser?.uid);
+  return db;
+}
+function setFormReadOnly(readonly){
+  frm.querySelectorAll('input,select,textarea,button[type="submit"]').forEach(el=>{el.disabled=readonly;});
+  document.getElementById('saveBtn').style.display=readonly?'none':'';
+  document.getElementById('readonlyNote').style.display=readonly?'block':'none';
+}
+
+async function loadProfile(user){
+  const snap=await getDoc(doc(firestoreDb,'users',user.uid));
+  if(!snap.exists()) throw new Error(`لا يوجد مستند صلاحيات لهذا الحساب. أنشئ users/${user.uid} وحدد role.`);
+  const profile=snap.data();
+  if(!['admin','supervisor','employee','viewer'].includes(profile.role)) throw new Error('دور المستخدم غير صحيح. استخدم admin أو supervisor أو employee أو viewer.');
+  return profile;
+}
+function subscribeRecords(){
+  if(unsubscribeRecords) unsubscribeRecords();
+  const base=collection(firestoreDb,'correspondences');
+  const q=canReadAll()?query(base):query(base,where('ownerUid','==',currentUser.uid));
+  unsubscribeRecords=onSnapshot(q,snap=>{
+    db=snap.docs.map(d=>({id:d.id,...d.data()}));
+    render();
+  },err=>{
+    console.error(err);
+    document.getElementById('tableWrap').innerHTML='<div class="empty">تعذر تحميل البيانات. راجع قواعد Firestore وصلاحيات المستخدم.</div>';
+    toast('تعذر تحميل البيانات');
+  });
+}
+
 function render(){
+  if(!currentUser) return;
+  const source=getScopedRecords();
   const q=document.getElementById('q').value.trim(), s=document.getElementById('fStatus').value,
         f=document.getElementById('fFrom').value, t=document.getElementById('fTo').value,
         fc=document.getElementById('fCase').value, fe=document.getElementById('fEng').value,
         fp=document.getElementById('fPriority').value, fx=document.getElementById('fExec').value;
-  let rows=db.filter(r=>{
+  let rows=source.filter(r=>{
     if(fc && r.caseType!==fc) return false;
     if(s && r.status!==s) return false;
     if(fe && !(r.engineers||'').includes(fe)) return false;
@@ -318,76 +428,77 @@ function render(){
     if(statFilter==='closed' && !['مكتمل','مغلق'].includes(r.status)) return false;
     if(f && (r.origDate||'')<f) return false;
     if(t && (r.origDate||'')>t) return false;
-    if(q){const hay=[r.code,r.subject,r.fromAuth,r.origNo,r.hqInNo,r.hqOutNo,r.secInNo,r.cenInNo,r.stdInNo,r.outNo,r.engineers,r.extVisaBy].join(' ');
+    if(q){const hay=[r.code,r.subject,r.fromAuth,r.origNo,r.hqInNo,r.hqOutNo,r.secInNo,r.cenInNo,r.stdInNo,r.outNo,r.engineers,r.extVisaBy,r.ownerName,r.ownerEmail].join(' ');
       if(!hay.includes(q)) return false;}
     return true;
   }).sort((a,b)=>(b.origDate||'').localeCompare(a.origDate||''));
 
-  const open=db.filter(r=>!['مكتمل','مغلق'].includes(r.status)).length,
-        od=db.filter(isOverdue).length,
-        closed=db.length-open,
-        week=db.filter(r=>r.dueDate>=today() && r.dueDate<=addDays(7) && !['مكتمل','مغلق'].includes(r.status)).length;
+  const open=source.filter(r=>!['مكتمل','مغلق'].includes(r.status)).length,
+        od=source.filter(isOverdue).length,
+        closed=source.length-open,
+        week=source.filter(r=>r.dueDate>=today() && r.dueDate<=addDays(7) && !['مكتمل','مغلق'].includes(r.status)).length;
   document.getElementById('stats').innerHTML=`
-    <div class="stat ${statFilter===''?'active':''}" onclick="setStat('')"><b>${db.length}</b><span>إجمالي المكاتبات</span></div>
+    <div class="stat ${statFilter===''?'active':''}" onclick="setStat('')"><b>${source.length}</b><span>إجمالي المكاتبات</span></div>
     <div class="stat ${statFilter==='open'?'active':''}" onclick="setStat('open')"><b>${open}</b><span>مفتوحة</span></div>
     <div class="stat ${statFilter==='overdue'?'active':''}" onclick="setStat('overdue')"><b class="red">${od}</b><span>متأخرة</span></div>
     <div class="stat" style="cursor:default"><b>${week}</b><span>تستحق خلال أسبوع</span></div>
     <div class="stat ${statFilter==='closed'?'active':''}" onclick="setStat('closed')"><b class="green">${closed}</b><span>مكتملة / مغلقة</span></div>`;
 
   document.getElementById('tableWrap').innerHTML = rows.length? `<table>
-    <thead><tr><th>الكود</th><th>الحالة</th><th>الموضوع</th><th>الجهة</th><th>تاريخ صادر الجهة</th><th>المهندس المكلف</th><th>التاريخ المقرر للتنفيذ</th><th>رقم الصادر</th><th>المتابعة</th></tr></thead>
+    <thead><tr><th>الكود</th><th>الحالة</th><th>الموضوع</th><th>الجهة</th><th>تاريخ صادر الجهة</th><th>المهندس المكلف</th><th>التاريخ المقرر للتنفيذ</th><th>رقم الصادر</th><th>المسجل</th><th>المتابعة</th></tr></thead>
     <tbody>${rows.map(r=>`<tr class="${isOverdue(r)?'overdue':''}" onclick="openForm('${r.id}')">
       <td>${esc(r.code)}</td>
       <td><span class="case-chip">${r.caseType||''} — ${CASE_NAMES[r.caseType]||''}</span></td>
       <td>${esc(r.subject)}</td><td>${esc(r.fromAuth)}</td>
       <td>${esc(r.origDate)}</td><td>${esc(r.engineers)}</td>
       <td>${esc(r.dueDate)}${isOverdue(r)?' <span class="late">متأخر</span>':''}</td>
-      <td>${esc(r.outNo)}</td>
+      <td>${esc(r.outNo)}</td><td>${esc(r.ownerName||r.ownerEmail)}</td>
       <td><span class="badge b-${(r.status||'').replace(/ /g,'-')}">${esc(r.status)}</span></td></tr>`).join('')}
-    </tbody></table>` : `<div class="empty">لا توجد مكاتبات مطابقة. اضغط «مكاتبة جديدة» لتسجيل أول خطاب.</div>`;
+    </tbody></table>` : `<div class="empty">لا توجد مكاتبات مطابقة.</div>`;
   refreshLists();
 }
-const addDays=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
 function setStat(s){statFilter=s;render()}
 function refreshLists(){
-  const engs=[...new Set(db.flatMap(r=>(r.engineers||'').split(/[،,]/).map(x=>x.trim())).filter(Boolean))];
+  const source=getScopedRecords();
+  const engs=[...new Set(source.flatMap(r=>(r.engineers||'').split(/[،,]/).map(x=>x.trim())).filter(Boolean))];
   document.getElementById('engList').innerHTML=engs.map(a=>`<option value="${esc(a)}">`).join('');
   const sel=document.getElementById('fEng'), cur=sel.value;
   sel.innerHTML='<option value="">كل المهندسين</option>'+engs.map(a=>`<option>${esc(a)}</option>`).join('');
   sel.value=cur;
 }
 
-/* ---------- case logic ---------- */
 function applyCase(){
   const c=frm.caseType.value;
   const secs=CASE_SECTIONS[c]||[];
   document.querySelectorAll('[data-sec]').forEach(d=>{
     let show=secs.includes(d.dataset.sec);
-    // central في الحالتين 1 و2 تظهر فقط لو مسار التحويل عبر الإدارة المركزية
-    if(d.dataset.sec==='central' && (c==='1'||c==='2'))
-      show = frm.route.value==='رئيس الإدارة المركزية';
+    if(d.dataset.sec==='central' && (c==='1'||c==='2')) show = frm.route.value==='رئيس الإدارة المركزية';
     d.style.display=show?'':'none';
   });
   drawPath();
 }
-
-/* ---------- form ---------- */
-const frm=document.getElementById('frm');
 function openForm(id){
-  editId=id||null; frm.reset();
-  document.getElementById('formTitle').textContent=id?'تعديل مكاتبة':'مكاتبة جديدة';
-  document.getElementById('delBtn').style.display=id?'':'none';
-  if(id){const r=db.find(x=>x.id===id);
+  if(id){
+    const r=db.find(x=>x.id===id);
+    if(!r){alert('لم يتم العثور على هذه المكاتبة');return;}
+    editId=id; setFormReadOnly(false); frm.reset();
+    document.getElementById('formTitle').textContent=canEditRecord(r)?'تعديل مكاتبة':'عرض مكاتبة';
+    document.getElementById('delBtn').style.display=canDelete()?'':'none';
     for(const el of frm.elements) if(el.name && r[el.name]!=null) el.value=r[el.name];
+    setFormReadOnly(!canEditRecord(r));
   } else {
-    frm.code.value='م-'+new Date().getFullYear()+'-'+String(db.length+1).padStart(4,'0');
+    if(!canCreate()){alert('حسابك لا يملك صلاحية إضافة مكاتبات');return;}
+    editId=null; setFormReadOnly(false); frm.reset();
+    document.getElementById('formTitle').textContent='مكاتبة جديدة';
+    document.getElementById('delBtn').style.display='none';
+    frm.code.value='م-'+new Date().getFullYear()+'-'+String(Date.now()).slice(-6);
   }
   syncConditionals();
   document.getElementById('listView').style.display='none';
   document.getElementById('formView').style.display='block';
   window.scrollTo(0,0);
 }
-function closeForm(){document.getElementById('formView').style.display='none';document.getElementById('listView').style.display='block';render()}
+function closeForm(){setFormReadOnly(false);document.getElementById('formView').style.display='none';document.getElementById('listView').style.display='block';render()}
 function toggleReply(v){document.getElementById('replySec').style.display = v==='نعم'?'':'none'}
 function toggleAttach(v){document.getElementById('attachRow').style.display = v==='نعم'?'':'none'}
 function toggleHqOutNo(v){document.getElementById('hqOutNoRow').style.display = v==='برقم'?'':'none'}
@@ -395,27 +506,33 @@ function toggleLate(v){document.getElementById('lateRow1').style.display = v==='
 function toggleLate2(v){document.getElementById('lateRow2').style.display = v==='تم'?'':'none'; toggleAction()}
 function toggleAction(){document.getElementById('actionRow').style.display = (frm.onTime.value==='نعم'||frm.doneLater.value==='تم')?'':'none'}
 function calcDue(){ if(frm.assignDate.value && frm.days.value){const d=new Date(frm.assignDate.value);d.setDate(d.getDate()+ +frm.days.value);frm.dueDate.value=d.toISOString().slice(0,10)} }
-function syncConditionals(){
-  applyCase(); toggleReply(frm.needsReply.value);
-  toggleAttach(frm.hasAttach.value); toggleHqOutNo(frm.hqOutType.value);
-  toggleLate(frm.onTime.value); toggleLate2(frm.doneLater.value); toggleAction();
-  drawPath();
-}
-
-function save(e){
+function syncConditionals(){applyCase(); toggleReply(frm.needsReply.value); toggleAttach(frm.hasAttach.value); toggleHqOutNo(frm.hqOutType.value); toggleLate(frm.onTime.value); toggleLate2(frm.doneLater.value); toggleAction(); drawPath();}
+async function save(e){
   e.preventDefault();
-  const r=editId? db.find(x=>x.id===editId) : {id:Date.now().toString(36)};
-  for(const el of frm.elements) if(el.name) r[el.name]=el.value;
-  r.lastActionDate ||= today();
-  if(!editId) db.push(r);
-  persist(); toast('تم الحفظ'); closeForm();
+  if(!currentUser){alert('سجل الدخول أولًا');return;}
+  const existing=editId?db.find(x=>x.id===editId):null;
+  if(editId && !canEditRecord(existing)){alert('ليس لديك صلاحية تعديل هذه المكاتبة');return;}
+  if(!editId && !canCreate()){alert('ليس لديك صلاحية إضافة مكاتبات');return;}
+  const data={};
+  for(const el of frm.elements) if(el.name) data[el.name]=el.value;
+  data.lastActionDate ||= today(); data.updatedAt=serverTimestamp(); data.updatedBy=currentUser.uid;
+  try{
+    if(editId){ await updateDoc(doc(firestoreDb,'correspondences',editId),data); }
+    else {
+      data.ownerUid=currentUser.uid; data.ownerEmail=currentUser.email||''; data.ownerName=currentProfile?.name||currentUser.email||'';
+      data.createdAt=serverTimestamp(); data.createdBy=currentUser.uid;
+      await addDoc(collection(firestoreDb,'correspondences'),data);
+    }
+    toast('تم الحفظ'); closeForm();
+  }catch(err){console.error(err); alert('تعذر الحفظ. راجع الصلاحيات أو اتصال Firebase.');}
 }
-function delRecord(){
+async function delRecord(){
+  const r=db.find(x=>x.id===editId);
+  if(!canDelete() || !r){alert('الحذف متاح للمدير فقط');return;}
   if(!confirm('حذف هذه المكاتبة نهائيًا؟')) return;
-  db=db.filter(x=>x.id!==editId); persist(); toast('تم الحذف'); closeForm();
+  try{await deleteDoc(doc(firestoreDb,'correspondences',editId)); toast('تم الحذف'); closeForm();}
+  catch(err){console.error(err); alert('تعذر الحذف. راجع الصلاحيات.');}
 }
-
-/* ---------- path tracker ---------- */
 function drawPath(){
   const v=n=>frm[n]&&frm[n].value;
   const c=frm.caseType.value;
@@ -423,70 +540,72 @@ function drawPath(){
   if(c==='1') steps=[['وارد المصلحة','hqInDate'],['صادر المصلحة','hqOutDate'],['وارد القطاع','secInDate'],['تأشيرة القطاع','secVisaDate']];
   if(c==='2') steps=[['وارد القطاع','secInDate'],['تأشيرة القطاع','secVisaDate']];
   if(c==='5'||c==='6') steps=[['التأشيرة الواردة','extVisaDate']];
-  if((c==='1'||c==='2') && v('route')==='رئيس الإدارة المركزية' || c==='3' || c==='5')
-    steps.push(['وارد المركزية','cenInDate'],['تأشيرة المركزية','cenVisaDate']);
+  if((c==='1'||c==='2') && v('route')==='رئيس الإدارة المركزية' || c==='3' || c==='5') steps.push(['وارد المركزية','cenInDate'],['تأشيرة المركزية','cenVisaDate']);
   steps.push(['وارد الدراسات','stdInDate'],['تكليف المهندس','assignDate'],['الصادر','outDate'],['الإغلاق','closeDate']);
   document.getElementById('path').innerHTML=steps.map(([n,f])=>`<div class="step ${v(f)?'done':''}"><span class="dot"></span>${n}</div>`).join('');
 }
 frm.addEventListener('change',drawPath);
 
-/* ---------- Excel export ---------- */
 const LABELS={
-  code:'كود المكاتبة',caseType:'نوع الحالة',subject:'الموضوع',fromAuth:'الجهة الصادر منها',
-  origNo:'رقم صادر الجهة',origDate:'تاريخ صادر الجهة',priority:'درجة الأهمية',secrecy:'السرية',
-  hasAttach:'يوجد مرفقات؟',attachments:'نوع المرفقات',notes:'ملاحظات عامة',
-  hqInNo:'رقم وارد المصلحة',hqInDate:'تاريخ وارد المصلحة',hqOfficial:'القائم بالتأشيرة',
-  hqOutType:'صادر المصلحة',hqOutNo:'رقم صادر المصلحة',hqOutDate:'تاريخ صادر المصلحة',
-  hqVisaText:'تأشيرة رئيس المصلحة',hqOtherDests:'جهات أخرى بالتأشيرة',
-  extVisaBy:'القائم بالتأشيرة (جهة أخرى)',extVisaAuth:'جهته',extVisaDate:'تاريخ تأشيرته',
-  extVisaText:'نص تأشيرته',extVisaReason:'سبب التأشيرة',
-  secInNo:'رقم وارد القطاع',secInDate:'تاريخ وارد القطاع',secVisaDate:'تاريخ تأشيرة رئيس القطاع',
-  secVisaText:'نص تأشيرة رئيس القطاع',route:'مسار التحويل',secOtherDests:'جهات أخرى محول إليها',
-  cenInNo:'رقم وارد المركزية',cenInDate:'تاريخ وارد المركزية',cenVisaDate:'تاريخ تأشيرة المركزية',cenVisaText:'نص تأشيرة المركزية',
-  stdInNo:'رقم وارد الدراسات',stdInDate:'تاريخ وارد الدراسات',assignDate:'تاريخ التكليف',
-  assignText:'نص تأشيرة التكليف',engineers:'المهندسون المكلفون',taskType:'نوع التكليف',
-  direction:'توجيه مدير عام الدراسات',days:'مدة التنفيذ بالأيام',dueDate:'التاريخ المقرر للتنفيذ',
-  taskPriority:'أولوية التنفيذ',needsReply:'يحتاج رد؟',assignNotes:'ملاحظات التكليف',
-  replyPrepared:'تم إعداد خطاب رد؟',draftDate:'تاريخ مشروع الرد',draftBy:'معد الرد',
-  replySummary:'ملخص الرد',approver:'جهة العرض',issuer:'جهة الرد',outType:'نوع الصادر',
-  outNo:'رقم الصادر',outDate:'تاريخ الصادر',mainTo:'المرسل إليه',ccTo:'صور إلى',replyStatus:'حالة الرد',
-  status:'حالة المتابعة',onTime:'تم في الموعد؟',doneLater:'تم بعد ذلك؟',doneDate:'تاريخ التنفيذ الفعلي',
-  actionText:'منطوق الإجراء',currentLoc:'آخر جهة بها الخطاب',lastAction:'آخر إجراء',
-  lastActionDate:'تاريخ آخر إجراء',closeDate:'تاريخ الإغلاق',closeReason:'سبب الإغلاق',followNotes:'ملاحظات المتابعة'
+  code:'كود المكاتبة',caseType:'نوع الحالة',subject:'الموضوع',fromAuth:'الجهة الصادر منها',origNo:'رقم صادر الجهة',origDate:'تاريخ صادر الجهة',priority:'درجة الأهمية',secrecy:'السرية',hasAttach:'يوجد مرفقات؟',attachments:'نوع المرفقات',notes:'ملاحظات عامة',hqInNo:'رقم وارد المصلحة',hqInDate:'تاريخ وارد المصلحة',hqOfficial:'القائم بالتأشيرة',hqOutType:'صادر المصلحة',hqOutNo:'رقم صادر المصلحة',hqOutDate:'تاريخ صادر المصلحة',hqVisaText:'تأشيرة رئيس المصلحة',hqOtherDests:'جهات أخرى بالتأشيرة',extVisaBy:'القائم بالتأشيرة (جهة أخرى)',extVisaAuth:'جهته',extVisaDate:'تاريخ تأشيرته',extVisaText:'نص تأشيرته',extVisaReason:'سبب التأشيرة',secInNo:'رقم وارد القطاع',secInDate:'تاريخ وارد القطاع',secVisaDate:'تاريخ تأشيرة رئيس القطاع',secVisaText:'نص تأشيرة رئيس القطاع',route:'مسار التحويل',secOtherDests:'جهات أخرى محول إليها',cenInNo:'رقم وارد المركزية',cenInDate:'تاريخ وارد المركزية',cenVisaDate:'تاريخ تأشيرة المركزية',cenVisaText:'نص تأشيرة المركزية',stdInNo:'رقم وارد الدراسات',stdInDate:'تاريخ وارد الدراسات',assignDate:'تاريخ التكليف',assignText:'نص تأشيرة التكليف',engineers:'المهندسون المكلفون',taskType:'نوع التكليف',direction:'توجيه مدير عام الدراسات',days:'مدة التنفيذ بالأيام',dueDate:'التاريخ المقرر للتنفيذ',taskPriority:'أولوية التنفيذ',needsReply:'يحتاج رد؟',assignNotes:'ملاحظات التكليف',replyPrepared:'تم إعداد خطاب رد؟',draftDate:'تاريخ مشروع الرد',draftBy:'معد الرد',replySummary:'ملخص الرد',approver:'جهة العرض',issuer:'جهة الرد',outType:'نوع الصادر',outNo:'رقم الصادر',outDate:'تاريخ الصادر',mainTo:'المرسل إليه',ccTo:'صور إلى',replyStatus:'حالة الرد',status:'حالة المتابعة',onTime:'تم في الموعد؟',doneLater:'تم بعد ذلك؟',doneDate:'تاريخ التنفيذ الفعلي',actionText:'منطوق الإجراء',currentLoc:'آخر جهة بها الخطاب',lastAction:'آخر إجراء',lastActionDate:'تاريخ آخر إجراء',closeDate:'تاريخ الإغلاق',closeReason:'سبب الإغلاق',followNotes:'ملاحظات المتابعة',ownerName:'المسجل',ownerEmail:'بريد المسجل'
 };
 function exportExcel(){
-  if(!db.length){alert('لا توجد بيانات للتصدير');return}
+  if(!canExport()){alert('التصدير متاح للمدير أو المشرف فقط');return}
+  const source=getScopedRecords(); if(!source.length){alert('لا توجد بيانات للتصدير');return}
   const keys=Object.keys(LABELS);
   const cell=v=>{v=(v==null?'':String(v)); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
   const lines=[keys.map(k=>LABELS[k]).join(',')];
-  for(const r of db){
-    const row={...r, caseType:r.caseType?(r.caseType+' — '+(CASE_NAMES[r.caseType]||'')):''};
-    lines.push(keys.map(k=>cell(row[k])).join(','));
-  }
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
-  a.download='سجل_المكاتبات_'+today()+'.csv'; a.click();
-  toast('تم التصدير — افتح الملف في Excel');
+  for(const r of source){const row={...r, caseType:r.caseType?(r.caseType+' — '+(CASE_NAMES[r.caseType]||'')):''}; lines.push(keys.map(k=>cell(row[k])).join(','));}
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
+  a.download='سجل_المكاتبات_'+today()+'.csv'; a.click(); toast('تم التصدير — افتح الملف في Excel');
 }
-
-/* ---------- backup ---------- */
 function exportJSON(){
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,1)],{type:'application/json'}));
+  if(!canExport()){alert('النسخة الاحتياطية متاحة للمدير أو المشرف فقط');return}
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(getScopedRecords(),null,1)],{type:'application/json'}));
   a.download='نسخة_احتياطية_المكاتبات_'+today()+'.json'; a.click();
 }
-function importJSON(inp){
+async function importJSON(inp){
+  if(!canImport()){alert('الاستيراد متاح للمدير فقط'); inp.value=''; return;}
   const f=inp.files[0]; if(!f) return;
-  f.text().then(t=>{
-    const data=JSON.parse(t);
-    if(!Array.isArray(data)) throw 0;
-    if(!confirm(`استيراد ${data.length} مكاتبة؟ سيتم استبدال البيانات الحالية (${db.length}).`)) return;
-    db=data; persist(); render(); toast('تم الاستيراد');
-  }).catch(()=>alert('ملف غير صالح'));
+  try{
+    const data=JSON.parse(await f.text()); if(!Array.isArray(data)) throw 0;
+    if(!confirm(`استيراد ${data.length} مكاتبة إلى قاعدة Firebase؟ سيتم إضافة/تحديث السجلات حسب رقمها القديم.`)) return;
+    for(const item of data){
+      const oldId=String(item.id||makeId()).replace(/[\\/#?\[\]]/g,'-');
+      const clean={...item}; delete clean.id;
+      clean.ownerUid=clean.ownerUid||currentUser.uid; clean.ownerEmail=clean.ownerEmail||currentUser.email||''; clean.ownerName=clean.ownerName||currentProfile?.name||currentUser.email||'';
+      clean.updatedAt=serverTimestamp(); clean.updatedBy=currentUser.uid; clean.createdAt=clean.createdAt||serverTimestamp(); clean.createdBy=clean.createdBy||currentUser.uid;
+      await setDoc(doc(firestoreDb,'correspondences',oldId),clean,{merge:true});
+    }
+    toast('تم الاستيراد إلى Firebase');
+  }catch(err){console.error(err); alert('ملف غير صالح أو حدث خطأ أثناء الاستيراد');}
   inp.value='';
 }
+async function logout(){await signOut(auth);}
 
-render();
+Object.assign(window,{render,setStat,applyCase,openForm,closeForm,toggleReply,toggleAttach,toggleHqOutNo,toggleLate,toggleLate2,toggleAction,calcDue,save,delRecord,exportExcel,exportJSON,importJSON,logout});
+frm.addEventListener('submit',save);
+document.getElementById('loginForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!configured()){authMsg.textContent='ضع بيانات firebaseConfig داخل index.html أولًا.';return;}
+  authMsg.textContent='جار تسجيل الدخول...';
+  try{await signInWithEmailAndPassword(auth,document.getElementById('loginEmail').value.trim(),document.getElementById('loginPassword').value);}
+  catch(err){console.error(err); authMsg.textContent='تعذر تسجيل الدخول. تأكد من البريد وكلمة المرور.';}
+});
+
+if(!configured()){
+  authMsg.textContent='الموقع جاهز، لكن يجب استبدال قيم PASTE_ داخل firebaseConfig أولًا.';
+  document.querySelector('#loginForm button').disabled=true;
+}else{
+  firebaseApp=initializeApp(firebaseConfig);
+  auth=getAuth(firebaseApp);
+  firestoreDb=getFirestore(firebaseApp);
+  onAuthStateChanged(auth,async user=>{
+    if(!user){showSignedOut();return;}
+    try{currentUser=user; currentProfile=await loadProfile(user); showApp(); subscribeRecords();}
+    catch(err){console.error(err); await signOut(auth); showSignedOut(err.message||'لا توجد صلاحيات لهذا الحساب.');}
+  });
+}
 </script>
 </body>
 </html>
