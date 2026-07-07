@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>سجل مكاتبات الإدارة العامة للدراسات والمواصفات</title>
+<style>
+:root{
+  --ink:#1d3a35; --paper:#f7f5f0; --card:#ffffff; --line:#d8d2c4;
+  --nile:#0f6b5c; --nile-dk:#0a4d42; --gold:#b8892f; --red:#b3392f;
+  --muted:#6d6a60; --amber-bg:#fdf3e3; --green-bg:#e8f3ef;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Tahoma,"Noto Kufi Arabic",Arial,sans-serif;background:var(--paper);color:var(--ink);font-size:15px}
+header{background:var(--nile-dk);color:#fff;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+header h1{font-size:18px;font-weight:700}
+header small{display:block;font-weight:400;opacity:.75;font-size:12px;margin-top:2px}
+.hbtns{display:flex;gap:8px;flex-wrap:wrap}
+button{font-family:inherit;font-size:14px;cursor:pointer;border:none;border-radius:6px;padding:8px 16px}
+.btn-p{background:var(--gold);color:#fff;font-weight:700}
+.btn-s{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.45)}
+.btn-g{background:#e9e6dd;color:var(--ink)}
+.btn-d{background:var(--red);color:#fff}
+main{max-width:1200px;margin:0 auto;padding:18px 22px 60px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;cursor:pointer}
+.stat b{font-size:24px;display:block}
+.stat span{color:var(--muted);font-size:13px}
+.stat.active{outline:2px solid var(--nile)}
+.stat .red{color:var(--red)} .stat .green{color:var(--nile)}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.filters input,.filters select{padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:14px;background:#fff}
+.filters input[type=search]{flex:1;min-width:220px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+th{background:var(--ink);color:#fff;padding:9px 10px;font-size:13px;text-align:right;font-weight:600}
+td{padding:9px 10px;border-top:1px solid var(--line);font-size:13.5px;vertical-align:top}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#f2efe7}
+tr.overdue td:first-child{border-right:4px solid var(--red)}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;white-space:nowrap}
+.b-جديد{background:#e7e5f5;color:#3d3580}.b-محال{background:var(--amber-bg);color:#8a5a10}
+.b-جاري-التنفيذ{background:#e3eefb;color:#1d4f8a}.b-بانتظار-الرد{background:#f5e9d8;color:#7a4d12}
+.b-مكتمل{background:var(--green-bg);color:var(--nile-dk)}.b-مغلق{background:#e9e6dd;color:var(--muted)}
+.case-chip{display:inline-block;background:#eef2f0;border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-size:11.5px;color:var(--muted);white-space:nowrap}
+.late{color:var(--red);font-weight:700;font-size:12px}
+.empty{padding:50px;text-align:center;color:var(--muted);background:var(--card);border:1px dashed var(--line);border-radius:8px}
+#formView{display:none}
+.fhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.fhead h2{font-size:18px}
+details{background:var(--card);border:1px solid var(--line);border-radius:8px;margin-bottom:10px}
+summary{padding:11px 16px;font-weight:700;cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px}
+summary::before{content:"◂";color:var(--gold);transition:transform .15s}
+details[open] summary::before{transform:rotate(-90deg)}
+summary .num{background:var(--nile);color:#fff;border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;padding:4px 16px 16px}
+.grid .full{grid-column:1/-1}
+label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:4px;font-weight:600}
+label .req{color:var(--red)}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:14px;background:#fff}
+input[readonly]{background:#f2efe7}
+textarea{resize:vertical;min-height:60px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--nile);outline-offset:1px}
+.factions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.path{display:flex;align-items:center;gap:0;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin-bottom:14px;overflow-x:auto}
+.step{display:flex;flex-direction:column;align-items:center;min-width:96px;position:relative;font-size:11.5px;color:var(--muted);text-align:center}
+.step .dot{width:16px;height:16px;border-radius:50%;background:#ddd8ca;border:2px solid var(--line);margin-bottom:5px;position:relative;z-index:1}
+.step.done .dot{background:var(--nile);border-color:var(--nile)}
+.step.done{color:var(--ink);font-weight:600}
+.step:not(:last-child)::after{content:"";position:absolute;top:7px;left:-50%;width:100%;height:2px;background:var(--line);z-index:0}
+.step.done:not(:last-child)::after{background:var(--nile)}
+.toast{position:fixed;bottom:22px;right:50%;transform:translateX(50%);background:var(--ink);color:#fff;padding:10px 22px;border-radius:8px;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
+@media print{header .hbtns,.filters,.stats,.factions,.fhead .hbtns{display:none}body{background:#fff}}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>وزارة الموارد المائية والري – قطاع التوسع الأفقي والمشروعات</h1>
+    <small>سجل مكاتبات الإدارة العامة للدراسات والمواصفات — نظام موحد للحالات الست</small>
+  </div>
+  <div class="hbtns">
+    <button class="btn-p" onclick="openForm()">＋ مكاتبة جديدة</button>
+    <button class="btn-s" onclick="exportExcel()">📊 تصدير Excel</button>
+    <button class="btn-s" onclick="exportJSON()">نسخة احتياطية</button>
+    <button class="btn-s" onclick="fileInput.click()">استيراد</button>
+    <button class="btn-s" onclick="window.print()">طباعة</button>
+    <input type="file" id="fileInput" accept=".json" hidden onchange="importJSON(this)">
+  </div>
+</header>
+
+<main>
+<!-- ======== LIST VIEW ======== -->
+<div id="listView">
+  <div class="stats" id="stats"></div>
+  <div class="filters">
+    <input type="search" id="q" placeholder="بحث: الموضوع / رقم الصادر أو الوارد / الجهة / المهندس…" oninput="render()">
+    <select id="fCase" onchange="render()">
+      <option value="">كل الحالات (1–6)</option>
+      <option value="1">1 — تأشيرة المصلحة لرئيس القطاع</option>
+      <option value="2">2 — خطاب مباشر لرئيس القطاع</option>
+      <option value="3">3 — خطاب مباشر للإدارة المركزية</option>
+      <option value="4">4 — خطاب مباشر لمدير عام الدراسات</option>
+      <option value="5">5 — تأشيرة جهة أخرى للإدارة المركزية</option>
+      <option value="6">6 — تأشيرة جهة أخرى لمدير عام الدراسات</option>
+    </select>
+    <select id="fStatus" onchange="render()">
+      <option value="">كل حالات المتابعة</option>
+      <option>جديد</option><option>محال</option><option>جاري التنفيذ</option>
+      <option>بانتظار الرد</option><option>مكتمل</option><option>مغلق</option>
+    </select>
+    <select id="fEng" onchange="render()"><option value="">كل المهندسين</option></select>
+    <select id="fPriority" onchange="render()">
+      <option value="">كل درجات الأهمية</option>
+      <option>فوري</option><option>خلال 48 ساعة</option><option>خلال أسبوع</option><option>خلال أسبوعين</option><option>عادي</option>
+    </select>
+    <select id="fExec" onchange="render()">
+      <option value="">التنفيذ: الكل</option>
+      <option value="onTime">تم في الموعد</option>
+      <option value="lateDone">تم بعد الموعد</option>
+      <option value="notDone">لم يتم حتى الآن</option>
+    </select>
+    <input type="date" id="fFrom" onchange="render()" title="من تاريخ صادر الجهة">
+    <input type="date" id="fTo" onchange="render()" title="إلى تاريخ صادر الجهة">
+  </div>
+  <div id="tableWrap"></div>
+</div>
+
+<!-- ======== FORM VIEW ======== -->
+<div id="formView">
+  <div class="fhead">
+    <h2 id="formTitle">مكاتبة جديدة</h2>
+    <div class="hbtns">
+      <button class="btn-g" onclick="closeForm()">رجوع للسجل</button>
+      <button class="btn-d" id="delBtn" style="display:none" onclick="delRecord()">حذف</button>
+    </div>
+  </div>
+
+  <div class="path" id="path"></div>
+
+  <form id="frm" autocomplete="off" onsubmit="save(event)">
+  <details open><summary><span class="num">1</span>نوع الحالة وبيانات الخطاب الأصلي</summary>
+    <div class="grid">
+      <div class="full"><label>نوع الحالة <span class="req">*</span></label>
+        <select name="caseType" required onchange="applyCase()">
+          <option value=""></option>
+          <option value="1">الحالة 1 — تأشيرة رئيس المصلحة / نائبه إلى رئيس قطاع التوسع (بناءً على خطاب خارجي)</option>
+          <option value="2">الحالة 2 — خطاب مباشر إلى رئيس قطاع التوسع (من رئيس المصلحة أو أي جهة أخرى)</option>
+          <option value="3">الحالة 3 — خطاب أصلي مباشر إلى رئيس الإدارة المركزية للدراسات والتصميمات والعقود</option>
+          <option value="4">الحالة 4 — خطاب أصلي مباشر إلى مدير عام الدراسات والمواصفات</option>
+          <option value="5">الحالة 5 — تأشيرة إلى رئيس الإدارة المركزية من جهة أخرى (لجنة / موضوع مشترك)</option>
+          <option value="6">الحالة 6 — تأشيرة إلى مدير عام الدراسات من جهة أخرى (لجنة / موضوع مشترك)</option>
+        </select>
+      </div>
+      <div><label>كود المكاتبة</label><input name="code" readonly placeholder="تلقائي"></div>
+      <div class="full"><label>موضوع الخطاب <span class="req">*</span></label><input name="subject" required></div>
+      <div><label>الجهة الصادر منها الخطاب <span class="req">*</span></label><input name="fromAuth" autocomplete="off" required></div>
+      <div><label>رقم صادر الجهة الأصلية</label><input name="origNo"></div>
+      <div><label>تاريخ صادر الجهة الأصلية <span class="req">*</span></label><input type="date" name="origDate" required></div>
+      <div><label>درجة الأهمية</label><select name="priority"><option>عادي</option><option>فوري</option><option>خلال 48 ساعة</option><option>خلال أسبوع</option><option>خلال أسبوعين</option></select></div>
+      <div><label>السرية</label><select name="secrecy"><option>عادي</option><option>سري</option></select></div>
+      <div><label>هل يوجد مرفقات مع الخطاب؟</label><select name="hasAttach" onchange="toggleAttach(this.value)"><option value=""></option><option>نعم</option><option>لا</option></select></div>
+      <div class="full" id="attachRow" style="display:none"><label>نوع المرفقات</label><input name="attachments"></div>
+      <div class="full"><label>ملاحظات عامة</label><textarea name="notes"></textarea></div>
+    </div>
+  </details>
+
+  <details data-sec="hq"><summary><span class="num">2</span>وارد رئيس المصلحة وصادره</summary>
+    <div class="grid">
+      <div><label>رقم وارد رئيس المصلحة</label><input name="hqInNo"></div>
+      <div><label>تاريخ وارد رئيس المصلحة</label><input type="date" name="hqInDate"></div>
+      <div><label>القائم بالتأشيرة</label><select name="hqOfficial"><option value=""></option><option>رئيس المصلحة</option><option>نائب رئيس المصلحة</option></select></div>
+      <div><label>صادر رئيس المصلحة</label><select name="hqOutType" onchange="toggleHqOutNo(this.value)"><option value=""></option><option>برقم</option><option>بدون رقم — تأشيرة مباشرة</option></select></div>
+      <div id="hqOutNoRow" style="display:none"><label>رقم صادر رئيس المصلحة</label><input name="hqOutNo"></div>
+      <div><label>تاريخ صادر رئيس المصلحة</label><input type="date" name="hqOutDate"></div>
+      <div class="full"><label>تأشيرة رئيس المصلحة (ضمن الصادر)</label><textarea name="hqVisaText"></textarea></div>
+      <div class="full"><label>جهات أخرى مذكورة في نفس التأشيرة (للتسجيل فقط)</label><input name="hqOtherDests" placeholder="مثال: رئيس قطاع المياه — للعلم"></div>
+    </div>
+  </details>
+
+  <details data-sec="extVisa"><summary><span class="num">2</span>التأشيرة الواردة من جهة أخرى</summary>
+    <div class="grid">
+      <div><label>القائم بالتأشيرة</label><input name="extVisaBy" placeholder="مثال: رئيس قطاع الخزانات"></div>
+      <div><label>جهة القائم بالتأشيرة</label><input name="extVisaAuth" autocomplete="off"></div>
+      <div><label>تاريخ التأشيرة</label><input type="date" name="extVisaDate"></div>
+      <div class="full"><label>نص التأشيرة</label><textarea name="extVisaText"></textarea></div>
+      <div class="full"><label>سبب التأشيرة (لجنة / موضوع مشترك)</label><input name="extVisaReason"></div>
+    </div>
+  </details>
+
+  <details data-sec="sector"><summary><span class="num">3</span>وارد قطاع التوسع وتأشيرة رئيس القطاع</summary>
+    <div class="grid">
+      <div><label>رقم وارد القطاع</label><input name="secInNo"></div>
+      <div><label>تاريخ وارد القطاع</label><input type="date" name="secInDate"></div>
+      <div><label>تاريخ تأشيرة رئيس القطاع</label><input type="date" name="secVisaDate"></div>
+      <div class="full"><label>نص تأشيرة رئيس القطاع</label><textarea name="secVisaText"></textarea></div>
+      <div><label>مسار التحويل</label><select name="route" onchange="applyCase()"><option value=""></option><option>رئيس الإدارة المركزية</option><option>مدير عام الدراسات مباشرة</option></select></div>
+      <div class="full"><label>جهات أخرى محول إليها إن وجدت</label><input name="secOtherDests"></div>
+    </div>
+  </details>
+
+  <details data-sec="central"><summary><span class="num">4</span>وارد الإدارة المركزية وتأشيرة رئيسها</summary>
+    <div class="grid">
+      <div><label>رقم وارد الإدارة المركزية</label><input name="cenInNo"></div>
+      <div><label>تاريخ وارد الإدارة المركزية</label><input type="date" name="cenInDate"></div>
+      <div><label>تاريخ التأشيرة</label><input type="date" name="cenVisaDate"></div>
+      <div class="full"><label>نص تأشيرة رئيس الإدارة المركزية</label><textarea name="cenVisaText"></textarea></div>
+    </div>
+  </details>
+
+  <details><summary><span class="num">5</span>وارد الدراسات وتأشيرة مدير عام الدراسات (التكليف)</summary>
+    <div class="grid">
+      <div><label>رقم وارد الدراسات</label><input name="stdInNo"></div>
+      <div><label>تاريخ وارد الدراسات</label><input type="date" name="stdInDate"></div>
+      <div><label>تاريخ تأشيرة التكليف</label><input type="date" name="assignDate" onchange="calcDue()"></div>
+      <div class="full"><label>نص التأشيرة (تسجل مرة واحدة)</label><textarea name="assignText"></textarea></div>
+      <div class="full"><label>المهندس / المهندسون المكلفون (افصل بفاصلة)</label><input name="engineers" list="engList" placeholder="م. أحمد، م. سارة"></div>
+      <div><label>نوع التكليف</label><select name="taskType"><option value=""></option><option>الدراسة والإفادة</option><option>عمل اللازم والعرض</option><option>الإحاطة والمتابعة والإفادة بما يستجد</option><option>إعداد رد والعرض</option><option>إعداد بيان والعرض</option><option>إعداد عرض تقديمي والعرض</option><option>إدراجه ضمن أعمال لجنة</option></select></div>
+      <div><label>توجيه مدير عام الدراسات</label><input name="direction" placeholder="إدخال يدوي — مثال: إعداد مذكرة"></div>
+      <div><label>مدة التنفيذ بالأيام</label><input type="number" name="days" min="0" oninput="calcDue()"></div>
+      <div><label>أولوية التنفيذ</label><select name="taskPriority"><option value=""></option><option>فوري خلال يوم</option><option>عاجل خلال يومين</option><option>عادي خلال أسبوع</option></select></div>
+      <div><label>هل الخطاب يحتاج إلى رد؟</label><select name="needsReply" onchange="toggleReply(this.value)"><option value=""></option><option>نعم</option><option>لا</option></select></div>
+      <div class="full"><label>ملاحظات التكليف</label><textarea name="assignNotes"></textarea></div>
+    </div>
+  </details>
+
+  <details id="replySec" style="display:none"><summary><span class="num">6</span>إعداد الخطاب والرد</summary>
+    <div class="grid">
+      <div><label>هل تم إعداد خطاب رد؟</label><select name="replyPrepared"><option value=""></option><option>نعم</option><option>لا</option></select></div>
+      <div><label>تاريخ إعداد مشروع الرد</label><input type="date" name="draftDate"></div>
+      <div><label>معد مشروع الرد</label><input name="draftBy"></div>
+      <div class="full"><label>ملخص الرد</label><textarea name="replySummary"></textarea></div>
+      <div><label>جهة العرض / الاعتماد</label><select name="approver"><option value=""></option><option>مدير عام الدراسات</option><option>رئيس الإدارة المركزية</option><option>رئيس القطاع</option></select></div>
+      <div><label>جهة الرد</label><select name="issuer"><option value=""></option><option>قطاع</option><option>إدارة مركزية</option><option>إدارة الدراسات</option></select></div>
+      <div><label>نوع الصادر</label><select name="outType"><option value=""></option><option>صادر قطاع</option><option>صادر مركزية</option><option>صادر دراسات</option></select></div>
+      <div><label>رقم الصادر</label><input name="outNo"></div>
+      <div><label>تاريخ الصادر</label><input type="date" name="outDate"></div>
+      <div><label>المرسل إليه الأساسي</label><input name="mainTo"></div>
+      <div class="full"><label>صور مرسلة إلى</label><input name="ccTo"></div>
+      <div><label>حالة الرد</label><select name="replyStatus"><option value=""></option><option>تحت الإعداد</option><option>معروض</option><option>معتمد</option><option>صادر</option></select></div>
+    </div>
+  </details>
+
+  <details open><summary><span class="num">7</span>حالة المكاتبة والمتابعة</summary>
+    <div class="grid">
+      <div><label>الحالة الحالية <span class="req">*</span></label><select name="status" required><option>جديد</option><option>محال</option><option>جاري التنفيذ</option><option>بانتظار الرد</option><option>مكتمل</option><option>مغلق</option></select></div>
+      <div><label>التاريخ المقرر للتنفيذ</label><input type="date" name="dueDate"></div>
+      <div><label>هل تم التنفيذ في الوقت المقرر؟</label><select name="onTime" onchange="toggleLate(this.value)"><option value=""></option><option>نعم</option><option>لا</option></select></div>
+      <div id="lateRow1" style="display:none"><label>هل تم التنفيذ بعد ذلك؟</label><select name="doneLater" onchange="toggleLate2(this.value)"><option value=""></option><option>تم</option><option>لم يتم حتى الآن</option></select></div>
+      <div id="lateRow2" style="display:none"><label>تاريخ التنفيذ الفعلي</label><input type="date" name="doneDate"></div>
+      <div class="full" id="actionRow" style="display:none"><label>منطوق الإجراء</label><input name="actionText" placeholder="مثال: الحفظ لعدم وجود رد — أو: تم الرد بالكتاب رقم كذا بتاريخ كذا"></div>
+      <div><label>آخر جهة موجود بها الخطاب</label><input name="currentLoc"></div>
+      <div><label>آخر إجراء تم</label><input name="lastAction"></div>
+      <div><label>تاريخ آخر إجراء</label><input type="date" name="lastActionDate"></div>
+      <div><label>تاريخ الإغلاق</label><input type="date" name="closeDate"></div>
+      <div class="full"><label>سبب الإغلاق</label><input name="closeReason"></div>
+      <div class="full"><label>ملاحظات المتابعة</label><textarea name="followNotes"></textarea></div>
+    </div>
+  </details>
+
+  <div class="factions">
+    <button type="submit" class="btn-p" style="background:var(--nile)">حفظ المكاتبة</button>
+    <button type="button" class="btn-g" onclick="closeForm()">إلغاء</button>
+  </div>
+  </form>
+</div>
+</main>
+
+<datalist id="engList"></datalist>
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY='corr_v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'[]');
+let editId=null, statFilter='';
+
+const CASE_NAMES={
+  '1':'تأشيرة المصلحة لرئيس القطاع',
+  '2':'خطاب مباشر لرئيس القطاع',
+  '3':'خطاب مباشر للإدارة المركزية',
+  '4':'خطاب مباشر لمدير عام الدراسات',
+  '5':'تأشيرة جهة أخرى للإدارة المركزية',
+  '6':'تأشيرة جهة أخرى لمدير عام الدراسات'
+};
+/* أي أقسام تظهر لكل حالة */
+const CASE_SECTIONS={
+  '1':['hq','sector','central'],   // central تظهر فقط لو المسار عبرها
+  '2':['sector','central'],
+  '3':['central'],
+  '4':[],
+  '5':['extVisa','central'],
+  '6':['extVisa']
+};
+
+const persist=()=>localStorage.setItem(KEY,JSON.stringify(db));
+const today=()=>new Date().toISOString().slice(0,10);
+const isOverdue=r=>r.dueDate && r.dueDate<today() && !['مكتمل','مغلق'].includes(r.status);
+const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const toast=m=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)};
+
+/* ---------- list ---------- */
+function render(){
+  const q=document.getElementById('q').value.trim(), s=document.getElementById('fStatus').value,
+        f=document.getElementById('fFrom').value, t=document.getElementById('fTo').value,
+        fc=document.getElementById('fCase').value, fe=document.getElementById('fEng').value,
+        fp=document.getElementById('fPriority').value, fx=document.getElementById('fExec').value;
+  let rows=db.filter(r=>{
+    if(fc && r.caseType!==fc) return false;
+    if(s && r.status!==s) return false;
+    if(fe && !(r.engineers||'').includes(fe)) return false;
+    if(fp && r.priority!==fp) return false;
+    if(fx==='onTime' && r.onTime!=='نعم') return false;
+    if(fx==='lateDone' && r.doneLater!=='تم') return false;
+    if(fx==='notDone' && r.doneLater!=='لم يتم حتى الآن') return false;
+    if(statFilter==='overdue' && !isOverdue(r)) return false;
+    if(statFilter==='open' && ['مكتمل','مغلق'].includes(r.status)) return false;
+    if(statFilter==='closed' && !['مكتمل','مغلق'].includes(r.status)) return false;
+    if(f && (r.origDate||'')<f) return false;
+    if(t && (r.origDate||'')>t) return false;
+    if(q){const hay=[r.code,r.subject,r.fromAuth,r.origNo,r.hqInNo,r.hqOutNo,r.secInNo,r.cenInNo,r.stdInNo,r.outNo,r.engineers,r.extVisaBy].join(' ');
+      if(!hay.includes(q)) return false;}
+    return true;
+  }).sort((a,b)=>(b.origDate||'').localeCompare(a.origDate||''));
+
+  const open=db.filter(r=>!['مكتمل','مغلق'].includes(r.status)).length,
+        od=db.filter(isOverdue).length,
+        closed=db.length-open,
+        week=db.filter(r=>r.dueDate>=today() && r.dueDate<=addDays(7) && !['مكتمل','مغلق'].includes(r.status)).length;
+  document.getElementById('stats').innerHTML=`
+    <div class="stat ${statFilter===''?'active':''}" onclick="setStat('')"><b>${db.length}</b><span>إجمالي المكاتبات</span></div>
+    <div class="stat ${statFilter==='open'?'active':''}" onclick="setStat('open')"><b>${open}</b><span>مفتوحة</span></div>
+    <div class="stat ${statFilter==='overdue'?'active':''}" onclick="setStat('overdue')"><b class="red">${od}</b><span>متأخرة</span></div>
+    <div class="stat" style="cursor:default"><b>${week}</b><span>تستحق خلال أسبوع</span></div>
+    <div class="stat ${statFilter==='closed'?'active':''}" onclick="setStat('closed')"><b class="green">${closed}</b><span>مكتملة / مغلقة</span></div>`;
+
+  document.getElementById('tableWrap').innerHTML = rows.length? `<table>
+    <thead><tr><th>الكود</th><th>الحالة</th><th>الموضوع</th><th>الجهة</th><th>تاريخ صادر الجهة</th><th>المهندس المكلف</th><th>التاريخ المقرر للتنفيذ</th><th>رقم الصادر</th><th>المتابعة</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr class="${isOverdue(r)?'overdue':''}" onclick="openForm('${r.id}')">
+      <td>${esc(r.code)}</td>
+      <td><span class="case-chip">${r.caseType||''} — ${CASE_NAMES[r.caseType]||''}</span></td>
+      <td>${esc(r.subject)}</td><td>${esc(r.fromAuth)}</td>
+      <td>${esc(r.origDate)}</td><td>${esc(r.engineers)}</td>
+      <td>${esc(r.dueDate)}${isOverdue(r)?' <span class="late">متأخر</span>':''}</td>
+      <td>${esc(r.outNo)}</td>
+      <td><span class="badge b-${(r.status||'').replace(/ /g,'-')}">${esc(r.status)}</span></td></tr>`).join('')}
+    </tbody></table>` : `<div class="empty">لا توجد مكاتبات مطابقة. اضغط «مكاتبة جديدة» لتسجيل أول خطاب.</div>`;
+  refreshLists();
+}
+const addDays=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+function setStat(s){statFilter=s;render()}
+function refreshLists(){
+  const engs=[...new Set(db.flatMap(r=>(r.engineers||'').split(/[،,]/).map(x=>x.trim())).filter(Boolean))];
+  document.getElementById('engList').innerHTML=engs.map(a=>`<option value="${esc(a)}">`).join('');
+  const sel=document.getElementById('fEng'), cur=sel.value;
+  sel.innerHTML='<option value="">كل المهندسين</option>'+engs.map(a=>`<option>${esc(a)}</option>`).join('');
+  sel.value=cur;
+}
+
+/* ---------- case logic ---------- */
+function applyCase(){
+  const c=frm.caseType.value;
+  const secs=CASE_SECTIONS[c]||[];
+  document.querySelectorAll('[data-sec]').forEach(d=>{
+    let show=secs.includes(d.dataset.sec);
+    // central في الحالتين 1 و2 تظهر فقط لو مسار التحويل عبر الإدارة المركزية
+    if(d.dataset.sec==='central' && (c==='1'||c==='2'))
+      show = frm.route.value==='رئيس الإدارة المركزية';
+    d.style.display=show?'':'none';
+  });
+  drawPath();
+}
+
+/* ---------- form ---------- */
+const frm=document.getElementById('frm');
+function openForm(id){
+  editId=id||null; frm.reset();
+  document.getElementById('formTitle').textContent=id?'تعديل مكاتبة':'مكاتبة جديدة';
+  document.getElementById('delBtn').style.display=id?'':'none';
+  if(id){const r=db.find(x=>x.id===id);
+    for(const el of frm.elements) if(el.name && r[el.name]!=null) el.value=r[el.name];
+  } else {
+    frm.code.value='م-'+new Date().getFullYear()+'-'+String(db.length+1).padStart(4,'0');
+  }
+  syncConditionals();
+  document.getElementById('listView').style.display='none';
+  document.getElementById('formView').style.display='block';
+  window.scrollTo(0,0);
+}
+function closeForm(){document.getElementById('formView').style.display='none';document.getElementById('listView').style.display='block';render()}
+function toggleReply(v){document.getElementById('replySec').style.display = v==='نعم'?'':'none'}
+function toggleAttach(v){document.getElementById('attachRow').style.display = v==='نعم'?'':'none'}
+function toggleHqOutNo(v){document.getElementById('hqOutNoRow').style.display = v==='برقم'?'':'none'}
+function toggleLate(v){document.getElementById('lateRow1').style.display = v==='لا'?'':'none'; if(v!=='لا'){frm.doneLater.value='';toggleLate2('')} toggleAction()}
+function toggleLate2(v){document.getElementById('lateRow2').style.display = v==='تم'?'':'none'; toggleAction()}
+function toggleAction(){document.getElementById('actionRow').style.display = (frm.onTime.value==='نعم'||frm.doneLater.value==='تم')?'':'none'}
+function calcDue(){ if(frm.assignDate.value && frm.days.value){const d=new Date(frm.assignDate.value);d.setDate(d.getDate()+ +frm.days.value);frm.dueDate.value=d.toISOString().slice(0,10)} }
+function syncConditionals(){
+  applyCase(); toggleReply(frm.needsReply.value);
+  toggleAttach(frm.hasAttach.value); toggleHqOutNo(frm.hqOutType.value);
+  toggleLate(frm.onTime.value); toggleLate2(frm.doneLater.value); toggleAction();
+  drawPath();
+}
+
+function save(e){
+  e.preventDefault();
+  const r=editId? db.find(x=>x.id===editId) : {id:Date.now().toString(36)};
+  for(const el of frm.elements) if(el.name) r[el.name]=el.value;
+  r.lastActionDate ||= today();
+  if(!editId) db.push(r);
+  persist(); toast('تم الحفظ'); closeForm();
+}
+function delRecord(){
+  if(!confirm('حذف هذه المكاتبة نهائيًا؟')) return;
+  db=db.filter(x=>x.id!==editId); persist(); toast('تم الحذف'); closeForm();
+}
+
+/* ---------- path tracker ---------- */
+function drawPath(){
+  const v=n=>frm[n]&&frm[n].value;
+  const c=frm.caseType.value;
+  let steps=[];
+  if(c==='1') steps=[['وارد المصلحة','hqInDate'],['صادر المصلحة','hqOutDate'],['وارد القطاع','secInDate'],['تأشيرة القطاع','secVisaDate']];
+  if(c==='2') steps=[['وارد القطاع','secInDate'],['تأشيرة القطاع','secVisaDate']];
+  if(c==='5'||c==='6') steps=[['التأشيرة الواردة','extVisaDate']];
+  if((c==='1'||c==='2') && v('route')==='رئيس الإدارة المركزية' || c==='3' || c==='5')
+    steps.push(['وارد المركزية','cenInDate'],['تأشيرة المركزية','cenVisaDate']);
+  steps.push(['وارد الدراسات','stdInDate'],['تكليف المهندس','assignDate'],['الصادر','outDate'],['الإغلاق','closeDate']);
+  document.getElementById('path').innerHTML=steps.map(([n,f])=>`<div class="step ${v(f)?'done':''}"><span class="dot"></span>${n}</div>`).join('');
+}
+frm.addEventListener('change',drawPath);
+
+/* ---------- Excel export ---------- */
+const LABELS={
+  code:'كود المكاتبة',caseType:'نوع الحالة',subject:'الموضوع',fromAuth:'الجهة الصادر منها',
+  origNo:'رقم صادر الجهة',origDate:'تاريخ صادر الجهة',priority:'درجة الأهمية',secrecy:'السرية',
+  hasAttach:'يوجد مرفقات؟',attachments:'نوع المرفقات',notes:'ملاحظات عامة',
+  hqInNo:'رقم وارد المصلحة',hqInDate:'تاريخ وارد المصلحة',hqOfficial:'القائم بالتأشيرة',
+  hqOutType:'صادر المصلحة',hqOutNo:'رقم صادر المصلحة',hqOutDate:'تاريخ صادر المصلحة',
+  hqVisaText:'تأشيرة رئيس المصلحة',hqOtherDests:'جهات أخرى بالتأشيرة',
+  extVisaBy:'القائم بالتأشيرة (جهة أخرى)',extVisaAuth:'جهته',extVisaDate:'تاريخ تأشيرته',
+  extVisaText:'نص تأشيرته',extVisaReason:'سبب التأشيرة',
+  secInNo:'رقم وارد القطاع',secInDate:'تاريخ وارد القطاع',secVisaDate:'تاريخ تأشيرة رئيس القطاع',
+  secVisaText:'نص تأشيرة رئيس القطاع',route:'مسار التحويل',secOtherDests:'جهات أخرى محول إليها',
+  cenInNo:'رقم وارد المركزية',cenInDate:'تاريخ وارد المركزية',cenVisaDate:'تاريخ تأشيرة المركزية',cenVisaText:'نص تأشيرة المركزية',
+  stdInNo:'رقم وارد الدراسات',stdInDate:'تاريخ وارد الدراسات',assignDate:'تاريخ التكليف',
+  assignText:'نص تأشيرة التكليف',engineers:'المهندسون المكلفون',taskType:'نوع التكليف',
+  direction:'توجيه مدير عام الدراسات',days:'مدة التنفيذ بالأيام',dueDate:'التاريخ المقرر للتنفيذ',
+  taskPriority:'أولوية التنفيذ',needsReply:'يحتاج رد؟',assignNotes:'ملاحظات التكليف',
+  replyPrepared:'تم إعداد خطاب رد؟',draftDate:'تاريخ مشروع الرد',draftBy:'معد الرد',
+  replySummary:'ملخص الرد',approver:'جهة العرض',issuer:'جهة الرد',outType:'نوع الصادر',
+  outNo:'رقم الصادر',outDate:'تاريخ الصادر',mainTo:'المرسل إليه',ccTo:'صور إلى',replyStatus:'حالة الرد',
+  status:'حالة المتابعة',onTime:'تم في الموعد؟',doneLater:'تم بعد ذلك؟',doneDate:'تاريخ التنفيذ الفعلي',
+  actionText:'منطوق الإجراء',currentLoc:'آخر جهة بها الخطاب',lastAction:'آخر إجراء',
+  lastActionDate:'تاريخ آخر إجراء',closeDate:'تاريخ الإغلاق',closeReason:'سبب الإغلاق',followNotes:'ملاحظات المتابعة'
+};
+function exportExcel(){
+  if(!db.length){alert('لا توجد بيانات للتصدير');return}
+  const keys=Object.keys(LABELS);
+  const cell=v=>{v=(v==null?'':String(v)); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  const lines=[keys.map(k=>LABELS[k]).join(',')];
+  for(const r of db){
+    const row={...r, caseType:r.caseType?(r.caseType+' — '+(CASE_NAMES[r.caseType]||'')):''};
+    lines.push(keys.map(k=>cell(row[k])).join(','));
+  }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
+  a.download='سجل_المكاتبات_'+today()+'.csv'; a.click();
+  toast('تم التصدير — افتح الملف في Excel');
+}
+
+/* ---------- backup ---------- */
+function exportJSON(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,1)],{type:'application/json'}));
+  a.download='نسخة_احتياطية_المكاتبات_'+today()+'.json'; a.click();
+}
+function importJSON(inp){
+  const f=inp.files[0]; if(!f) return;
+  f.text().then(t=>{
+    const data=JSON.parse(t);
+    if(!Array.isArray(data)) throw 0;
+    if(!confirm(`استيراد ${data.length} مكاتبة؟ سيتم استبدال البيانات الحالية (${db.length}).`)) return;
+    db=data; persist(); render(); toast('تم الاستيراد');
+  }).catch(()=>alert('ملف غير صالح'));
+  inp.value='';
+}
+
+render();
+</script>
+</body>
+</html>
