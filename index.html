@@ -82,6 +82,15 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 .user-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:7px 12px;font-size:12px;color:#fff;background:rgba(255,255,255,.08)}
 .role-note{display:inline-flex;align-items:center;border-radius:999px;padding:2px 8px;background:rgba(255,255,255,.18)}
 .readonly-note{background:var(--amber-bg);border:1px solid #e9c789;color:#7a4d12;border-radius:8px;padding:10px 12px;margin-bottom:12px;display:none;font-size:13px}
+.engineer-modal{position:fixed;inset:0;background:rgba(10,77,66,.35);display:flex;align-items:center;justify-content:center;padding:18px;z-index:20}
+.engineer-card{width:min(520px,100%);background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:0 18px 50px rgba(29,58,53,.2);padding:18px}
+.engineer-card h2{font-size:18px;margin-bottom:6px}
+.engineer-card p{color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:12px}
+.engineer-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:12px}
+.engineer-row>div{flex:1}
+.engineer-list{display:flex;gap:8px;flex-wrap:wrap;max-height:260px;overflow:auto;border-top:1px solid var(--line);padding-top:12px}
+.engineer-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:6px 10px;background:#f8f6f1;font-size:13px}
+.engineer-pill button{padding:0 6px;border-radius:999px;background:transparent;color:var(--red);font-weight:700}
 .hidden{display:none!important}
 </style>
 </head>
@@ -109,6 +118,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
   <div class="hbtns">
     <span class="user-badge" id="userBadge"></span>
     <button class="btn-p" id="newBtn" onclick="openForm()">＋ مكاتبة جديدة</button>
+    <button class="btn-s" id="engineersBtn" onclick="openEngineerSettings()">إعدادات المهندسين</button>
     <button class="btn-s" id="exportBtn" onclick="exportExcel()">📊 تصدير Excel</button>
     <button class="btn-s" id="backupBtn" onclick="exportJSON()">نسخة احتياطية</button>
     <button class="btn-s" id="importBtn" onclick="document.getElementById('fileInput').click()">استيراد</button>
@@ -300,6 +310,20 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 
 <datalist id="engList"></datalist>
 <div class="toast" id="toast"></div>
+<div id="engineerModal" class="engineer-modal hidden" role="dialog" aria-modal="true" aria-label="إعدادات المهندسين">
+  <section class="engineer-card">
+    <div class="fhead">
+      <h2>إعدادات المهندسين</h2>
+      <button class="btn-g" type="button" onclick="closeEngineerSettings()">إغلاق</button>
+    </div>
+    <p>أضف أسماء المهندسين هنا لتظهر في خانة التكليف وفلتر البحث. هذه الإعدادات متاحة للمدير والمشرف فقط.</p>
+    <form id="engineerForm" class="engineer-row">
+      <div><label>اسم المهندس</label><input id="engineerName" required placeholder="مثال: م. أحمد محمد"></div>
+      <button class="btn-p" type="submit">إضافة</button>
+    </form>
+    <div id="engineerSettingsList" class="engineer-list"></div>
+  </section>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
@@ -315,8 +339,8 @@ const firebaseConfig = {
   appId: "1:983892417691:web:417f0e487b2d7758d1ba3e"
 };
 
-let firebaseApp=null, auth=null, firestoreDb=null, unsubscribeRecords=null;
-let db=[], editId=null, statFilter='', currentUser=null, currentProfile=null;
+let firebaseApp=null, auth=null, firestoreDb=null, unsubscribeRecords=null, unsubscribeEngineers=null;
+let db=[], engineerSettings=[], editId=null, statFilter='', currentUser=null, currentProfile=null;
 
 const CASE_NAMES={
   '1':'تأشيرة المصلحة لرئيس القطاع',
@@ -346,6 +370,7 @@ const canCreate=()=>['admin','supervisor','employee'].includes(role());
 const canDelete=()=>role()==='admin';
 const canImport=()=>role()==='admin';
 const canExport=()=>['admin','supervisor'].includes(role());
+const canManageEngineers=()=>['admin','supervisor'].includes(role());
 const canEditRecord=r=>role()==='admin'||role()==='supervisor'||(role()==='employee' && r?.ownerUid===currentUser?.uid);
 const configured=()=>Object.values(firebaseConfig).every(v=>v && !String(v).startsWith('PASTE_'));
 const addDays=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
@@ -360,6 +385,8 @@ function showSignedOut(message=''){
   authMsg.textContent=message;
   currentUser=null; currentProfile=null; db=[];
   if(unsubscribeRecords){unsubscribeRecords(); unsubscribeRecords=null;}
+  if(unsubscribeEngineers){unsubscribeEngineers(); unsubscribeEngineers=null;}
+  engineerSettings=[];
 }
 function showApp(){
   document.getElementById('authView').style.display='none';
@@ -373,6 +400,7 @@ function applyPermissions(){
   document.getElementById('exportBtn').style.display=canExport()?'':'none';
   document.getElementById('backupBtn').style.display=canExport()?'':'none';
   document.getElementById('importBtn').style.display=canImport()?'':'none';
+  document.getElementById('engineersBtn').style.display=canManageEngineers()?'':'none';
   const scope=document.getElementById('fScope');
   if(canReadAll()){scope.style.display='';} else {scope.value='mine'; scope.style.display='none';}
 }
@@ -408,6 +436,17 @@ function subscribeRecords(){
   });
 }
 
+function subscribeEngineers(){
+  if(unsubscribeEngineers) unsubscribeEngineers();
+  unsubscribeEngineers=onSnapshot(collection(firestoreDb,'engineers'),snap=>{
+    engineerSettings=snap.docs.map(d=>({id:d.id,...d.data()})).filter(e=>e.name).sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+    renderEngineerSettings();
+    refreshLists();
+  },err=>{
+    console.error(err);
+    toast('تعذر تحميل قائمة المهندسين');
+  });
+}
 function render(){
   if(!currentUser) return;
   const source=getScopedRecords();
@@ -460,13 +499,44 @@ function render(){
 function setStat(s){statFilter=s;render()}
 function refreshLists(){
   const source=getScopedRecords();
-  const engs=[...new Set(source.flatMap(r=>(r.engineers||'').split(/[،,]/).map(x=>x.trim())).filter(Boolean))];
+  const fromRecords=source.flatMap(r=>(r.engineers||'').split(/[،,]/).map(x=>x.trim())).filter(Boolean);
+  const fromSettings=engineerSettings.map(e=>e.name).filter(Boolean);
+  const engs=[...new Set([...fromSettings,...fromRecords].map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
   document.getElementById('engList').innerHTML=engs.map(a=>`<option value="${esc(a)}">`).join('');
   const sel=document.getElementById('fEng'), cur=sel.value;
   sel.innerHTML='<option value="">كل المهندسين</option>'+engs.map(a=>`<option>${esc(a)}</option>`).join('');
   sel.value=cur;
 }
 
+function openEngineerSettings(){
+  if(!canManageEngineers()){alert('إعدادات المهندسين متاحة للمدير أو المشرف فقط');return;}
+  document.getElementById('engineerModal').classList.remove('hidden');
+  document.getElementById('engineerName').focus();
+  renderEngineerSettings();
+}
+function closeEngineerSettings(){document.getElementById('engineerModal').classList.add('hidden');}
+function engineerDocId(name){return String(name).trim().replace(/[\\/#?\[\]]/g,'-').replace(/\s+/g,' ')||makeId();}
+function renderEngineerSettings(){
+  const box=document.getElementById('engineerSettingsList'); if(!box) return;
+  box.innerHTML=engineerSettings.length?engineerSettings.map(e=>`<span class="engineer-pill">${esc(e.name)} <button type="button" title="حذف" onclick="deleteEngineer('${esc(e.id)}','${esc(e.name)}')">×</button></span>`).join(''):'<div class="empty" style="padding:18px;width:100%">لم يتم إضافة مهندسين بعد.</div>';
+}
+async function addEngineer(e){
+  e.preventDefault();
+  if(!canManageEngineers()){alert('إعدادات المهندسين متاحة للمدير أو المشرف فقط');return;}
+  const input=document.getElementById('engineerName');
+  const name=input.value.trim().replace(/\s+/g,' ');
+  if(!name) return;
+  try{
+    await setDoc(doc(firestoreDb,'engineers',engineerDocId(name)),{name,updatedAt:serverTimestamp(),updatedBy:currentUser.uid},{merge:true});
+    input.value=''; toast('تمت إضافة المهندس');
+  }catch(err){console.error(err); alert('تعذر إضافة المهندس. انشر قواعد Firestore الجديدة أولًا.');}
+}
+async function deleteEngineer(id,name){
+  if(!canManageEngineers()){alert('إعدادات المهندسين متاحة للمدير أو المشرف فقط');return;}
+  if(!confirm(`حذف ${name} من قائمة المهندسين؟`)) return;
+  try{await deleteDoc(doc(firestoreDb,'engineers',id)); toast('تم حذف المهندس');}
+  catch(err){console.error(err); alert('تعذر حذف المهندس. راجع الصلاحيات.');}
+}
 function applyCase(){
   const c=frm.caseType.value;
   const secs=CASE_SECTIONS[c]||[];
@@ -583,8 +653,9 @@ async function importJSON(inp){
 }
 async function logout(){await signOut(auth);}
 
-Object.assign(window,{render,setStat,applyCase,openForm,closeForm,toggleReply,toggleAttach,toggleHqOutNo,toggleLate,toggleLate2,toggleAction,calcDue,save,delRecord,exportExcel,exportJSON,importJSON,logout});
+Object.assign(window,{render,setStat,applyCase,openForm,closeForm,openEngineerSettings,closeEngineerSettings,deleteEngineer,toggleReply,toggleAttach,toggleHqOutNo,toggleLate,toggleLate2,toggleAction,calcDue,save,delRecord,exportExcel,exportJSON,importJSON,logout});
 frm.addEventListener('submit',save);
+document.getElementById('engineerForm').addEventListener('submit',addEngineer);
 document.getElementById('loginForm').addEventListener('submit',async e=>{
   e.preventDefault();
   if(!configured()){authMsg.textContent='ضع بيانات firebaseConfig داخل index.html أولًا.';return;}
@@ -602,7 +673,7 @@ if(!configured()){
   firestoreDb=getFirestore(firebaseApp);
   onAuthStateChanged(auth,async user=>{
     if(!user){showSignedOut();return;}
-    try{currentUser=user; currentProfile=await loadProfile(user); showApp(); subscribeRecords();}
+    try{currentUser=user; currentProfile=await loadProfile(user); showApp(); subscribeRecords(); subscribeEngineers();}
     catch(err){console.error(err); await signOut(auth); showSignedOut(err.message||'لا توجد صلاحيات لهذا الحساب.');}
   });
 }
